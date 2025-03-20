@@ -11,7 +11,7 @@ from dgl.data import DGLDataset
 
 
 def create_base_graph():
-    # 创建随机连接的图
+    # connection GRAPH
     edges_data = pd.read_csv('../STGCN-WVAN/data-su/edge_features2.csv')
     
     edge_fe_name = ['area_ratio','centre distance', 'aspect angle differ', 'elevation differ']
@@ -28,14 +28,12 @@ def generate_dt_points(st_dt,en_dt):
     start_date = datetime.strptime(st_dt, '%Y%m%d').date()
     end_date = datetime.strptime(en_dt, '%Y%m%d').date()
 
-    # 设置日期增量为12天
+    # date increase 12day
     date_increment = timedelta(days=12)
 
-    # 初始化日期列表和当前日期
     date_list = []
     current_date = start_date
 
-    # 循环生成日期直到当前日期超过结束日期
     while current_date <= end_date:
         date_list.append(current_date.strftime('%Y%m%d'))
         current_date += date_increment
@@ -46,31 +44,24 @@ def generate_dt_points(st_dt,en_dt):
 
 def transform_time_series(data_list, window_size):
     """
-    转换时间序列数据列表为适用于时间序列预测的数据格式，排除初始化为0的时间点。
-    
-    参数:
-        data_list (list of pd.DataFrame): 时间序列的特征数据列表，每个元素是一个DataFrame。
-        window_size (int): 历史时间长度，即时间窗口大小。
+    parameters:
+        data_list (list of pd.DataFrame): DataFrame。
+        window_size (int): history length。
         
-    返回:
-        np.array: 转换后的数据数组，形状为 (有效时间点, 特征, 历史时间长度, 样本数)。
+    return:
+        np.array: shape of (time_steps, dynamic_fes, history length, samples)。
     """
-    n_features = data_list[0].shape[1]  # 特征数量
-    n_samples = data_list[0].shape[0]   # 每个时间点的样本数
-    n_times = len(data_list)            # 总时间点数
+    n_features = data_list[0].shape[1]  
+    n_samples = data_list[0].shape[0]   
+    n_times = len(data_list)            
 
-    # 考虑到只有当t >= window_size - 1时，我们才有完整的窗口数据
     effective_time_points = n_times - window_size + 1
 
-    # 初始化一个空的numpy数组，用于存储转换后的数据
     transformed_data = np.zeros((effective_time_points, n_features, window_size, n_samples))
-    # 遍历每一个有效的时间点
+
     for t in range(effective_time_points):
-        # 为每一个有效时间点，获取窗口内的数据
         for w in range(window_size):
-            # 计算实际的数据索引
             idx = t + w
-            # 数据按照 (特征, 时间, 样本) 的顺序填充
             transformed_data[t, :, w, :] = data_list[idx].values.T
 
     return transformed_data
@@ -111,8 +102,7 @@ def get_model_data(device):
     node_label_arr1 = np.array(node_label_df).transpose()   #(23140,174)
     data_array = np.array([df[dy_fe_name].values for df in dy_node_dfs])
 
-    #将t时刻的环境因子和t-1时刻的标签组合为t时刻的输入数据
-    #因子[1:], 标签[:-1]
+    #factors[1:], labels[:-1]
     dy_arr = data_array[1:]
     label_in = node_label_arr1[:-1]
     label_in_ex = np.expand_dims(label_in,axis = -1)
