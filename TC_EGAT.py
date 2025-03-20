@@ -46,9 +46,6 @@ class Chomp2d(nn.Module):
         self.chomp_size = chomp_size
 
     def forward(self, x):
-        """
-        裁剪的模块，裁剪多出来的padding
-        """
         return x[:, :, :-self.chomp_size[0], :-self.chomp_size[1]].contiguous()
 
 class TN_module(nn.Module):
@@ -57,20 +54,20 @@ class TN_module(nn.Module):
         
         self.convT = weight_norm(nn.Conv2d(c_in, c_out, (3,1),
                                            stride=1, padding=(0,0), dilation=dia))
-        # 经过conv1，输出的size其实是(Batch, input_channel, seq_len + padding)
+        # process by conv1，output_size(Batch, input_channel, seq_len + padding)
         self.dropout2 = nn.Dropout(dropout)
-        self.chomp1 = Chomp2d((2,0))  # 裁剪掉多出来的padding部分，维持输出时间步为seq_len
+        self.chomp1 = Chomp2d((2,0))  
         self.relu2 = nn.ReLU()
         
         self.conv = nn.Conv2d(
             c_in, c_out, (3, 1), 1, dilation=dia, padding=(0, 0)
-        )  #（2，1）卷积核的尺寸
+        )  #（2，1）kernel_size
         self.net = nn.Sequential(self.convT, self.relu2, self.dropout2)
         self.init_weights()
     
     def init_weights(self):
         """
-        参数初始化
+        parameters initialization
         """
         self.convT.weight.data.normal_(0, 0.01)
     
